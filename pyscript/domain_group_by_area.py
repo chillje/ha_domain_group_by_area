@@ -17,7 +17,7 @@ def get_all_areas():
         log.error(f"Error getting all areas: {e}")
     return all_areas
 
-def get_area_entities(area_name, domain, entity_black_list):
+def get_area_entities(area_name, domain):
 
     devreg = dr.async_get(hass)
     entreg = er.async_get(hass)
@@ -34,21 +34,27 @@ def get_area_entities(area_name, domain, entity_black_list):
                 if entity_entry.device_id and desired_entity_id in entity_entry.device_id:
                     if entity_entry.entity_id.startswith(f"{domain}."):
                         if entity_entry.disabled_by is None and entity_entry.hidden_by is None:
-                            # don't get the black-listed entities
-                            if entity_entry.entity_id not in entity_black_list:
-                                area_entities.append(entity_entry.entity_id.strip())
+                            area_entities.append(entity_entry.entity_id.strip())
                         else:
                             log.info(f"Entry is disabled or hidden: {entity_entry.entity_id}")
     return area_entities
 
-def process_area(area_name, domain, entity_black_list):
-    group_name = f"{area_name}_all_{domain}s"
-    area_domain_entities = get_area_entities(area_name, domain, entity_black_list)
+def filter_blacklist(entities, blacklist):
+    log.debug(f"Filter blacklisted entries: {entities}")
 
-    if len(area_domain_entities) > 0:
-        create_group(group_name, area_domain_entities)
-    else:
-        delete_group(group_name)
+    filtered_entities = [entity for entity in entities if entity not in blacklist]
+    log.debug(f"Filtered area entries: {filtered_entities}")
+    return filtered_entities
+
+def process_area(area_name, domain, entity_blacklist):
+    group_name = f"{area_name}_all_{domain}s"
+    area_domain_entities = get_area_entities(area_name, domain)
+    filtered_domain_entities = filter_blacklist(area_domain_entities, entity_blacklist)
+
+    if len(filtered_domain_entities) > 0:
+        create_group(group_name, filtered_domain_entities)
+    #else:
+    #    delete_group(group_name)
 
 def create_group(group_name, entities):
     try:
@@ -57,40 +63,61 @@ def create_group(group_name, entities):
 
         # Create the group
         group.set(object_id=group_name, entities=entities)
-
+    
     except Exception as e:
         log.error(f"Error creating group: {e}")
 
 def delete_group(group_name):
     try:
         log.info(f"Deleting group: {group_name}")
-
+        
         # Remove the group
-        state.delete(f"group.{group_name}")
+        #FIXME not working, state.get throws exception...
+        #if state.get(f"group.{group_name}"):
+        #    log.info(f"The group {group_name} exists. Deleting...")
+        #    state.delete(f"group.{group_name}")
 
     except Exception as e:
         log.error(f"Error deleting group: {e}")
 
+def create_all(domain, entity_blacklist):
+    try:
+        group_name = f"all_{domain}s"
+        log.info(f"Create group: {group_name}")
+
+        all_entities_of_domain = state.names(domain)
+
+        filtered_domain_entities = filter_blacklist(all_entities_of_domain, entity_blacklist)
+
+        if len(filtered_domain_entities) > 0:
+            create_group(group_name, filtered_domain_entities)
+        
+    except Exception as e:
+        log.error(f"Error creating \"all_domain\" group of domain: {e}")
+
+
 @service
-def domain_group_by_area(domain, entity_black_list, area_whitelist=None):
+def domain_group_by_area(domain, entity_blacklist=None, area_whitelist=None, all=None):
     try:
         if not isinstance(domain, str) or not domain:
             log.error("Bad domain! Not executing.")
         else:
             log.info(f"Loaded domain: {domain}")
-            log.info(f"Entity black list: {entity_black_list}")
+            log.info(f"Entity black list: {entity_blacklist}")
 
             if area_whitelist is None:
-                all_areas = get_all_areas()
-                #all_areas = ["buro"]
+                #all_areas = get_all_areas()
+                all_areas = ["buro"]
             else:
                 all_areas = area_whitelist
 
             log.info(f"List of areas: {all_areas}")
 
             for area_name in all_areas:
-                process_area(area_name, domain, entity_black_list)
+                process_area(area_name, domain, entity_blacklist)
+
+            if all:
+                create_all(domain, entity_blacklist)
 
     except Exception as e:
         log.error(f"Error in domain_group_by_area: {e}")
-
