@@ -69,8 +69,8 @@ def process_area(area_name, domain, entity_blacklist):
 
         if len(filtered_domain_entities) > 0:
             create_group(group_name, filtered_domain_entities)
-        #else:
-        #    delete_group(group_name)
+        else:
+            delete_group(group_name)
 
     except Exception as e:
         log.error(f"Error processing area: {e}")
@@ -90,11 +90,14 @@ def delete_group(group_name):
     try:
         log.info(f"Deleting group: {group_name}")
 
-        # Remove the group
-        #FIXME not working, state.get throws exception...
-        #if state.get(f"group.{group_name}"):
-        #    log.info(f"The group {group_name} exists. Deleting...")
-        #    state.delete(f"group.{group_name}")
+        # FIXME
+        # This is ugly but at this time I cant find
+        # another solution to test if a group exists.
+        try:
+            state.get(f"group.{group_name}")
+            group.remove(object_id=group_name)
+        except NameError as e:
+            log.info(f"Deleting group: {group_name} does not exist, skipping.")
 
     except Exception as e:
         log.error(f"Error deleting group: {e}")
@@ -109,6 +112,8 @@ def create_all(domain, entity_blacklist):
 
         if len(filtered_domain_entities) > 0:
             create_group(group_name, filtered_domain_entities)
+        else:
+            delete_group(group_name)
         
     except Exception as e:
         log.error(f"Error creating \"all_domain\" group of domain: {e}")
