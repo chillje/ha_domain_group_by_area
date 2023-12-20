@@ -70,7 +70,11 @@ def process_area(area_name, domain, entity_blacklist):
     try:
         group_name = f"{area_name}_all_{domain}s"
         area_domain_entities = get_area_entities(area_name, domain)
-        filtered_domain_entities = filter_blacklist(area_domain_entities, entity_blacklist)
+
+        if len(area_domain_entities) > 0:
+            filtered_domain_entities = filter_blacklist(area_domain_entities, entity_blacklist)
+        else:
+            filtered_domain_entities = area_domain_entities
 
         if len(filtered_domain_entities) > 0:
             create_group(group_name, filtered_domain_entities)
@@ -79,6 +83,7 @@ def process_area(area_name, domain, entity_blacklist):
 
     except Exception as e:
         log.error(f"Error processing area: {e}")
+
 
 def create_group(group_name, entities):
     try:
