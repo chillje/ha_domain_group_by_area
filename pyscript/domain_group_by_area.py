@@ -53,7 +53,12 @@ def get_area_entities(area_name, domain):
 def filter_blacklist(entities, blacklist):
     try:
         log.debug(f"Filter blacklisted entries: {entities}")
-        filtered_entities = [entity for entity in entities if entity not in blacklist]
+
+        if blacklist is None:
+            filtered_entities = entities
+        else:
+            filtered_entities = [entity for entity in entities if entity not in blacklist]
+
         log.debug(f"Filtered area entries: {filtered_entities}")
         return filtered_entities
 
