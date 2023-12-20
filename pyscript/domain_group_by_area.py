@@ -36,7 +36,7 @@ def get_area_entities(area_name, domain):
                             if entity_entry.disabled_by is None and entity_entry.hidden_by is None:
                                 area_entities.append(entity_entry.entity_id.strip())
                             else:
-                                log.info(f"Entry is disabled or hidden: {entity_entry.entity_id}")
+                                log.debug(f"Entry is disabled or hidden: {entity_entry.entity_id}")
 
         return area_entities
 
@@ -80,8 +80,8 @@ def process_area(area_name, domain, entity_blacklist):
 
 def create_group(group_name, entities):
     try:
-        log.info(f"Creating group: {group_name}")
-        log.info(f"Entities in the group: {entities}")
+        log.debug(f"Creating group: {group_name}")
+        log.debug(f"Entities in the group: {entities}")
 
         # Create the group
         group.set(object_id=group_name, entities=entities)
@@ -91,7 +91,7 @@ def create_group(group_name, entities):
 
 def delete_group(group_name):
     try:
-        log.info(f"Deleting group: {group_name}")
+        log.debug(f"Deleting group: {group_name}")
 
         # FIXME
         # This is ugly but at this time I cant find
@@ -100,7 +100,7 @@ def delete_group(group_name):
             state.get(f"group.{group_name}")
             group.remove(object_id=group_name)
         except NameError as e:
-            log.info(f"Deleting group: {group_name} does not exist, skipping.")
+            log.debug(f"Deleting group: {group_name} does not exist, skipping.")
 
     except Exception as e:
         log.error(f"Error deleting group: {e}")
@@ -108,7 +108,7 @@ def delete_group(group_name):
 def create_all(domain, entity_blacklist):
     try:
         group_name = f"all_{domain}s"
-        log.info(f"Create group: {group_name}")
+        log.debug(f"Create group: {group_name}")
 
         all_entities_of_domain = state.names(domain)
         filtered_domain_entities = filter_blacklist(all_entities_of_domain, entity_blacklist)
@@ -127,15 +127,15 @@ def domain_group_by_area(domain, entity_blacklist=None, area_whitelist=None, all
         if not isinstance(domain, str) or not domain:
             log.error("Bad domain! Not executing.")
         else:
-            log.info(f"Loaded domain: {domain}")
-            log.info(f"Entity black list: {entity_blacklist}")
+            log.debug(f"Loaded domain: {domain}")
+            log.debug(f"Entity black list: {entity_blacklist}")
 
             if area_whitelist is None:
                 all_areas = get_all_areas()
             else:
                 all_areas = area_whitelist
 
-            log.info(f"List of areas: {all_areas}")
+            log.debug(f"List of areas: {all_areas}")
 
             for area_name in all_areas:
                 process_area(area_name, domain, entity_blacklist)
