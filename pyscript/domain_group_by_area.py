@@ -44,34 +44,64 @@ def get_area_entities(area_name, domain):
         log.error(f"Error getting area entities: {e}")
         return []
 
-def filter_blacklist(entities, blacklist):
+def filter_entity_blacklist(entities, blacklist):
     try:
-        log.debug(f"Filter blacklisted entries: {blacklist}")
+        log.debug(f"Filter blacklisted entities: {blacklist}")
 
         if blacklist is None:
             filtered_entities = entities
         else:
             filtered_entities = [entity for entity in entities if entity not in blacklist]
 
-        log.debug(f"Filtered area entries: {filtered_entities}")
+        log.debug(f"Filtered entities: {filtered_entities}")
         return filtered_entities
 
     except Exception as e:
-        log.error(f"Error filtering blacklist: {e}")
+        log.error(f"Error filtering entity_blacklist: {e}")
         return entities
 
-def process_area(area_name, domain, entity_blacklist):
+def filter_platform_blacklist(entities, blacklist):
     try:
-        group_name = f"{area_name}_all_{domain}s"
+        log.debug(f"Filter blacklisted platforms: {blacklist}")
+
+        if blacklist is None:
+            filtered_entities = entities
+        else:
+            entreg = er.async_get(hass)
+            filtered_entities = []
+            for ent in entreg.entities.items():
+                entity_id = ent[0]
+                entity_entry = ent[1]
+            
+                for entity in entities:
+                    if entity_entry.entity_id in entity:
+                        if entity_entry.platform not in blacklist:
+                            filtered_entities.append(entity)
+
+        log.debug(f"Filtered platforms: {filtered_entities}")
+        return filtered_entities
+
+    except Exception as e:
+        log.error(f"Error filtering platform_blacklist: {e}")
+        return entities
+
+def process_area(area_name, domain, entity_blacklist, platform_blacklist):
+    try:
+        group_name = f"area_{area_name}_all_{domain}s"
         area_domain_entities = get_area_entities(area_name, domain)
 
         if len(area_domain_entities) > 0:
-            filtered_domain_entities = filter_blacklist(area_domain_entities, entity_blacklist)
+            filtered_domain_entities = filter_entity_blacklist(area_domain_entities, entity_blacklist)
         else:
             filtered_domain_entities = area_domain_entities
 
         if len(filtered_domain_entities) > 0:
-            create_group(group_name, filtered_domain_entities)
+            group_entities = filter_platform_blacklist(filtered_domain_entities, platform_blacklist)
+        else:
+            group_entities = filtered_domain_entities
+
+        if len(group_entities) > 0:
+            create_group(group_name, group_entities)
         else:
             delete_group(group_name)
 
@@ -105,16 +135,17 @@ def delete_group(group_name):
     except Exception as e:
         log.error(f"Error deleting group: {e}")
 
-def create_all(domain, entity_blacklist):
+def create_all(domain, entity_blacklist, platform_blacklist):
     try:
         group_name = f"all_{domain}s"
         log.debug(f"Create group: {group_name}")
 
         all_entities_of_domain = state.names(domain)
-        filtered_domain_entities = filter_blacklist(all_entities_of_domain, entity_blacklist)
+        filtered_domain_entities = filter_entity_blacklist(all_entities_of_domain, entity_blacklist)
+        group_entities = filter_platform_blacklist(filtered_domain_entities, platform_blacklist)
 
-        if filtered_domain_entities:
-            create_group(group_name, filtered_domain_entities)
+        if group_entities:
+            create_group(group_name, group_entities)
         else:
             delete_group(group_name)
         
@@ -122,7 +153,7 @@ def create_all(domain, entity_blacklist):
         log.error(f"Error creating \"all_domain\" group of domain: {e}")
 
 @service
-def domain_group_by_area(domain, entity_blacklist=None, area_whitelist=None, all=None):
+def domain_group_by_area(domain, entity_blacklist=None, area_whitelist=None, platform_blacklist=None, all=None):
     try:
         if not isinstance(domain, str) or not domain:
             log.error("Bad domain! Not executing.")
@@ -138,10 +169,10 @@ def domain_group_by_area(domain, entity_blacklist=None, area_whitelist=None, all
             log.debug(f"List of areas: {all_areas}")
 
             for area_name in all_areas:
-                process_area(area_name, domain, entity_blacklist)
+                process_area(area_name, domain, entity_blacklist, platform_blacklist)
 
             if all:
-                create_all(domain, entity_blacklist)
+                create_all(domain, entity_blacklist, platform_blacklist)
 
     except Exception as e:
         log.error(f"Error in domain_group_by_area: {e}")
