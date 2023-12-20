@@ -28,6 +28,7 @@ If you like my work, you can support me here:\
 :white_check_mark: Works with different domains (such as "light", "switch", ..)\
 :white_check_mark: Automatic creation for all created areas\
 :white_check_mark: Blacklist for single entities (optional)\
+:white_check_mark: Blacklist a whole platform with  all of its entities (e.g. "unifi", "tasmota") (optional)\
 :white_check_mark: Whitelist for single areas (optional)\
 :white_check_mark: Create an overall domain based group `group.all_lights`, `group.all_switchs` (optional)\
 :white_square_button: Create groups for combined areas (AREA1 & AREA2)
@@ -79,7 +80,7 @@ action:
  - You can define *area_whitelist* to limit the considered areas for the group creation.
  - If you want an overall group for all domain entities (except the blacklisted ones) you can add *all* as another option.
 
- Example config:
+ Example config for lights:
 ```
   alias: Create area_all_lights group per area on HA startup
 trigger:
@@ -89,6 +90,7 @@ action:
   - service: pyscript.domain_group_by_area
     data:
       domain: light
+      all: true
       entity_blacklist:
         - light.hmip_bsm_balkonzimmerlicht
         - light.schlaf_shelly1_fenster1
@@ -96,7 +98,24 @@ action:
         - buro
         - schlafzimmer
         - flur_unten
+```
+
+ Example config for switches:
+```
+alias: Create area_all_switches group per area on HA startup
+description: ""
+trigger:
+  - platform: homeassistant
+    event: start
+action:
+  - service: pyscript.domain_group_by_area
+    data:
+      domain: switch
       all: true
+      entity_blacklist:
+        - switch.hmip_fsm16_heizung_zuleitung
+      platform_blacklist:
+        - unifi
 ```
 
 ### Update
