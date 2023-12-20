@@ -5,15 +5,9 @@ from homeassistant.helpers import area_registry as ar
 def get_all_areas():
     try:
         areareg = ar.async_get(hass)
-        all_areas = []
 
-        for a in areareg.areas.items():
-            id = a[0]
-            entry = a[1]
-            log.info(f"Area: {entry.id} {entry.name} id: {id}")
-            all_areas.append(entry.id)
+        all_areas = [entry.id.lower() for id, entry in areareg.areas.items()]
 
-        all_areas = [element.lower() for element in all_areas]
         return all_areas
 
     except Exception as e:
@@ -52,7 +46,7 @@ def get_area_entities(area_name, domain):
 
 def filter_blacklist(entities, blacklist):
     try:
-        log.debug(f"Filter blacklisted entries: {entities}")
+        log.debug(f"Filter blacklisted entries: {blacklist}")
 
         if blacklist is None:
             filtered_entities = entities
@@ -83,7 +77,6 @@ def process_area(area_name, domain, entity_blacklist):
 
     except Exception as e:
         log.error(f"Error processing area: {e}")
-
 
 def create_group(group_name, entities):
     try:
@@ -120,7 +113,7 @@ def create_all(domain, entity_blacklist):
         all_entities_of_domain = state.names(domain)
         filtered_domain_entities = filter_blacklist(all_entities_of_domain, entity_blacklist)
 
-        if len(filtered_domain_entities) > 0:
+        if filtered_domain_entities:
             create_group(group_name, filtered_domain_entities)
         else:
             delete_group(group_name)
