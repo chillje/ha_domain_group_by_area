@@ -16,8 +16,8 @@ Example:
    - `light.light2`
 
 Results to:
- * `group.area1_all_lights`
- * `group.area2_all_lights`
+ * `group.area_area1_all_lights`
+ * `group.area_area2_all_lights`
 
 You can do this with other domains like "switch".
 
